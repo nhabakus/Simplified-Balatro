@@ -1,5 +1,5 @@
-# CPE 487 Final Project - Grid Escape
-**By: Atharva Shaligram and Sean Anderson**
+# CPE 487 Final Project - Simplified Balatro
+**By: Nick Habakus and Victor Afonso**
 
 A 2D platformer game designed in VHDL and displayed on a screen using an FPGA board and VGA connector
 
