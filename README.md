@@ -1,8 +1,6 @@
 # CPE 487 Final Project - Simplified Balatro
 **By: Nick Habakus and Victor Afonso**
 
-A 2D platformer game designed in VHDL and displayed on a screen using an FPGA board and VGA connector
-
 ## Project Overview
 
 The goal of this project was to create a simplified version of the game Balatro using a Nexys A7 board and VGA display. The project replicated game mechanics such as drawing, playing, and discarding cards - as well as summing total score from played hands. 
