@@ -63,7 +63,7 @@ Once you have downloaded the files:
 
 ## Inputs and Outputs
 
-### `Game_Main.vhd`
+### `game.vhd`
 ```
 ENTITY Game_Main IS
     PORT (
@@ -100,7 +100,7 @@ END Game_Main;
  - SEG7_anode: Controls the anodes of the 7-segment display
  - SEG7_seg: Controls the segments of the 7-segment display
 
-### `tilemap_vga.vhd`
+### `random.vhd`
 ```
 ENTITY tilemap_vga IS
     PORT (
@@ -137,6 +137,7 @@ END tilemap_vga;
  - counter: Used for counting game time
  - new_last_score: Used to update current saved game completion time to previous game completion time
 
+   
 ## Modifications
 Note: "..." indicates that there is unmodified code that has been purposely excluded
 
