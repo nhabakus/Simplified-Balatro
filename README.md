@@ -13,36 +13,7 @@ The goal of this project was to create a simplified version of the game Balatro 
 - If the player chooses to discard cards (Up to 5 max each time and only 4 times per game), they will receive the same amount of new cards in their hand as the number they discarded.
 - Play ends when the player has played 4 total hands.  
 
-#### Player Movement:
-
-- Four buttons are the inputs for the player movement, which are BTNL to move left, BTNR to move right, BTNU to jump, and BTNC to attack.
-
-- Gravity is always factored in for the player, so player can fall off platforms if there are open areas.
-
-#### Collision Detection:
-
-- Collision detection dictates player movement.
-  
-- When player collides with flag, game is reset
-
-#### Game Timer:
-- Time of game play and game completion time is kept track of.
-
-## Expected Behavior
-
-- When the game loads in, a map and player is generated and displayed on the screen.
-
-  - Brick wall boundaries are created, with staircases, mushrooms, and a flag at end.
-
-  - Purple ghosts are hovering over platforms.
-
-- Player moves around the map.
-
-- When player presses center button, they can attack and unalive enemies.
-
-- Game time is kept track of.
-
-### Block Diagram of Game Functionality
+### FSM Of Game Flow
 
 ![Block Diagram](/Images/block_diagram.png)
 
@@ -56,11 +27,11 @@ For the game to work, you will need the following:
   
   <img src="Images/micro_usb_cable.png" alt="Micro USB Cable" width="300"/>
   
-- VGA Cable
+- HDMI Cable
   
   <img src="Images/vga_cable.jpg" alt="VGA Cable" width="300"/>
   
-- Monitor with VGA Port
+- Monitor with HDMI Port
   
   <img src="Images/monitor.png" alt="Monitor" width="300"/>
   
