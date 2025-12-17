@@ -9,6 +9,9 @@ The goal of this project was to create a simplified version of the game Balatro 
 
 - Player is dealt 8 random cards to his hand.
 - From this point, they have the choice to select cards to either play them for points or discard them to receive new cards.
+- Played hands will them we scored according to hand strength, using tradition 5 card poker hierarchy (Royal Flush, Straight Flush, Four of a Kind, etc.)
+- If the player chooses to discard cards (Up to 5 max each time and only 4 times per game), they will receive the same amount of new cards in their hand as the number they discarded.
+- Play ends when the player has played 4 total hands.  
 
 #### Player Movement:
 
