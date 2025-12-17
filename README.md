@@ -29,7 +29,7 @@ For the game to work, you will need the following:
   
 - HDMI Cable
   
-  <img src="Images/vga_cable.jpg" alt="VGA Cable" width="300"/>
+  <img src="Images/hdmi.png" alt="HDMI Cable" width="300"/>
   
 - Monitor with HDMI Port
   
