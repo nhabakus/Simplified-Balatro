@@ -5,24 +5,12 @@ A 2D platformer game designed in VHDL and displayed on a screen using an FPGA bo
 
 ## Project Overview
 
-The goal of this project was to create a 2D platformer game using a Nexys A7 board and VGA display. The project replicated common game mechanics from platformer games such as movement, collision detection, and attacking.
+The goal of this project was to create a simplified version of the game Balatro using a Nexys A7 board and VGA display. The project replicated game mechanics such as drawing, playing, and discarding cards - as well as summing total score from played hands. 
 
-### Gameplay Win
-[Gameplay Win Video](https://youtube.com/shorts/Zy052E8Qeeo)
+### Main Aspects of Balatro:
 
-### Gameplay Fail
-[Gameplay Fail Video](https://youtube.com/shorts/NM_8QatdL1k)
-
-### Game Timer Counter Video with LEDs
-[Game Timer Counter Video with LEDs](https://youtube.com/shorts/LZx9jwMAcNc)
-
-### Main Aspects of Grid Escape:
-
-#### Map Creation:
-
-- The start of the game generates and displays the map, player, and enemies (purple ghosts) on the screen.
-
-- Brick wall boundaries are created with staircases, mushrooms, and a flag at the end.
+- Player is dealt 8 random cards to his hand.
+- From this point, they have the choice to select cards to either play them for points or discard them to receive new cards.
 
 #### Player Movement:
 
