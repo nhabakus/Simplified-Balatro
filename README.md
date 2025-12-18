@@ -65,33 +65,32 @@ Once you have downloaded the files:
 
 ### `game.vhd`
 ```
-ENTITY Game_Main IS
+entity game is
     PORT (
-        clk_in : IN STD_LOGIC; -- system clock
-        VGA_red : OUT STD_LOGIC_VECTOR (3 DOWNTO 0); -- VGA outputs
+        clk_in : IN STD_LOGIC;
+        VGA_red : OUT STD_LOGIC_VECTOR (3 DOWNTO 0);
         VGA_green : OUT STD_LOGIC_VECTOR (3 DOWNTO 0);
         VGA_blue : OUT STD_LOGIC_VECTOR (3 DOWNTO 0);
         VGA_hsync : OUT STD_LOGIC;
         VGA_vsync : OUT STD_LOGIC;
-        btnl : IN STD_LOGIC;
         btnr : IN STD_LOGIC;
         btnc : IN STD_LOGIC;
-        btnd : IN STD_LOGIC;
-        btnu : IN STD_LOGIC;
-        SEG7_anode : OUT STD_LOGIC_VECTOR (7 DOWNTO 0); -- anodes of four 7-seg displays
-        SEG7_seg : OUT STD_LOGIC_VECTOR (6 DOWNTO 0)
+        SEG7_anode : OUT STD_LOGIC_VECTOR (7 DOWNTO 0);
+        SEG7_seg : OUT STD_LOGIC_VECTOR (6 DOWNTO 0);
+        SW : in STD_LOGIC_VECTOR(7 downto 0)
     ); 
-END Game_Main;
+end game;
 ```
 
 #### Inputs
- - clk_in: System clock
- - btnl: Left Button, used to move left
- - btnr: Right Button, used to move right
- - btnc: Center Button, used to attack/unalive enemies
- - btnd: Down Button, used to reset the game
- - btnu: Up Button, used to jump
-#### Outputs
+
+- clk_in : System clock
+- btnr : Right button, used to "play" cards
+- btnc : Center button, used to "discard" cards
+- SW : Switches represented by vecotr, used to select cards
+ 
+ 
+ #### Outputs
  - VGA_red: Controls red output to VGA screen
  - VGA_green: Controls green output to VGA screen
  - VGA_blue: Controls blue output to VGA screen
@@ -102,568 +101,476 @@ END Game_Main;
 
 ### `random.vhd`
 ```
-ENTITY tilemap_vga IS
-    PORT (
-        clk         : IN  STD_LOGIC;
-        pixel_row   : IN  STD_LOGIC_VECTOR(10 DOWNTO 0);
-        pixel_col   : IN  STD_LOGIC_VECTOR(10 DOWNTO 0);
-        btnl        : IN STD_LOGIC;
-        btnr        : IN STD_LOGIC;
-        btnu        : IN STD_LOGIC;
-        btnd        : IN STD_LOGIC;
-        btnc        : IN STD_LOGIC;
-        red         : OUT STD_LOGIC;
-        green       : OUT STD_LOGIC;
-        blue        : OUT STD_LOGIC;
-        counter     : OUT STD_LOGIC_VECTOR(15 DOWNTO 0);
-        new_last_score : OUT STD_LOGIC_VECTOR(15 DOWNTO 0)
+entity random is
+    Port (
+        clock : in  STD_LOGIC;
+        reset : in  STD_LOGIC;
+        en    : in  STD_LOGIC;
+        Q     : out STD_LOGIC_VECTOR (5 downto 0);
+        check : out STD_LOGIC
     );
-END tilemap_vga;
+end random;
 ```
 
 #### Inputs
- - clk: System clock
- - pixel_row: 
- - pixel_col:
- - btnl: Left Button, used to move left
- - btnr: Right Button, used to move right
- - btnc: Center Button, used to attack/unalive enemies
- - btnd: Down Button, used to reset the game
- - btnu: Up Button, used to jump
-#### Outputs
- - red: Controls red output
- - green: Controls green output
- - blue: Controls blue output
- - counter: Used for counting game time
- - new_last_score: Used to update current saved game completion time to previous game completion time
+ - clock: System clock
+ - reset: used to reset lsfr to initial value 
+ - en: Signal to advance the LSFR
+ 
+ #### Outputs
+ - Q: generated 6 bit vector
+ - check: monitoring/debugging signal
 
+### 'deck.vhd'
+
+Package that includes
+
+- Card definitions:
+  ```
+ 	-- Card value
+    constant CARD_2    : std_logic_vector(0 to 3) := "0010"; -- 2
+    constant CARD_3    : std_logic_vector(0 to 3) := "0011"; -- 3
+    constant CARD_4    : std_logic_vector(0 to 3) := "0100"; -- 4
+    constant CARD_5    : std_logic_vector(0 to 3) := "0101"; -- 5
+    constant CARD_6    : std_logic_vector(0 to 3) := "0110"; -- 6
+    constant CARD_7    : std_logic_vector(0 to 3) := "0111"; -- 7
+    constant CARD_8    : std_logic_vector(0 to 3) := "1000"; -- 8
+    constant CARD_9    : std_logic_vector(0 to 3) := "1001"; -- 9
+    constant CARD_10   : std_logic_vector(0 to 3) := "1010"; -- 10
+    constant CARD_J    : std_logic_vector(0 to 3) := "1011"; -- 11 (Jack)
+    constant CARD_Q    : std_logic_vector(0 to 3) := "1100"; -- 12 (Queen)
+    constant CARD_K    : std_logic_vector(0 to 3) := "1101"; -- 13 (King)
+    constant CARD_A    : std_logic_vector(0 to 3) := "1110"; -- 14 (Ace)
+
+  	-- Card Suits
+    constant SUIT_HEARTS : std_logic_vector(0 to 1) := "00";
+    constant SUIT_DIAMONDS : std_logic_vector(0 to 1) := "01";
+    constant SUIT_CLUBS : std_logic_vector(0 to 1):= "10";
+    constant SUIT_SPADES : std_logic_vector(0 to 1):= "11";
+  ```
+  - And functions:
+ 	```
+	 Function to generate cards
+    function make_card(value : std_logic_vector(0 to 3);
+                        suit: std_logic_vector(0 to 1)) return card_t;
+                        
+	 Function to get card value
+    function get_value(card : card_t) return std_logic_vector;
+    
+    -- Function to get card suit
+    function get_suit(card : card_t) return std_logic_vector;
+    
+    -- Function to check if card is valid
+    function is_valid_card(card : card_t) return boolean;
+    
+     type hand_type_t is (HIGH_CARD, PAIR, TWO_PAIR, THREE_KIND, STRAIGHT, 
+                         FLUSH, FULL_HOUSE, FOUR_KIND, STRAIGHT_FLUSH, ROYAL_FLUSH);
+    
+    -- Score record containing base value and multiplier
+    type score_t is record
+        value : integer;
+        multiplier : integer;
+    end record;
+	
+	-- Function to score hands
+	function score_hand(h : hand) return score_t;
+	
+	-- Function to add the value of cards to score, like in Balatro
+	function get_card_score_value(card : card_t) return integer;
+
+  	```
+
+  
    
 ## Modifications
-Note: "..." indicates that there is unmodified code that has been purposely excluded
+We modified the contraints file pong.xcd to include the rightmost switches, as well as switching the order so that we count them from left to right:
 
-### `Game_Main.vhd` (previously pong.vhd) Modified
-The top level file of our project was based off of `pong.vhd` from Lab 6. We added more ports in to include all of the directional buttons on the FPGA board which include BTNL, BTNR, BTNC, BTNU, BTND. We added one new componenet which was `tilemap_vga.vhd` that includes most of the game logic. The port mapping of leddec16 was modified slightly to include two separate display ports where one would display the current game time and the other would display the previous game time. A process was added to allow for constant update of the leds. Tilemap_vga port mapping includes clock, pixel row, pixel column and all of the button as in ports and red, green, blue, counter for time, and new_last_score (previous game completion time) as out ports.
-```
-...
+	```
+	set_property -dict { PACKAGE_PIN J15   IOSTANDARD LVCMOS33 } [get_ports { SW[7] }]; #IO_L24N_T3_RS0_15 Sch=sw[0]
+	set_property -dict { PACKAGE_PIN L16   IOSTANDARD LVCMOS33 } [get_ports { SW[6] }]; #IO_L3N_T0_DQS_EMCCLK_14 Sch=sw[1]
+	set_property -dict { PACKAGE_PIN M13   IOSTANDARD LVCMOS33 } [get_ports { SW[5] }]; #IO_L6N_T0_D08_VREF_14 Sch=sw[2]
+	set_property -dict { PACKAGE_PIN R15   IOSTANDARD LVCMOS33 } [get_ports { SW[4] }]; #IO_L13N_T2_MRCC_14 Sch=sw[3]
+	set_property -dict { PACKAGE_PIN R17   IOSTANDARD LVCMOS33 } [get_ports { SW[3] }]; #IO_L12N_T1_MRCC_14 Sch=sw[4]
+	set_property -dict { PACKAGE_PIN T18   IOSTANDARD LVCMOS33 } [get_ports { SW[2] }]; #IO_L7N_T1_D10_14 Sch=sw[5]
+	set_property -dict { PACKAGE_PIN U18   IOSTANDARD LVCMOS33 } [get_ports { SW[1] }]; #IO_L17N_T2_A13_D29_14 Sch=sw[6]
+	set_property -dict { PACKAGE_PIN R13   IOSTANDARD LVCMOS33 } [get_ports { SW[0] }]; #IO_L5N_T0_D07_14 Sch=sw[7]
 
-ENTITY Game_Main IS
-    PORT (
-        clk_in : IN STD_LOGIC; -- system clock
-        VGA_red : OUT STD_LOGIC_VECTOR (3 DOWNTO 0); -- VGA outputs
-        VGA_green : OUT STD_LOGIC_VECTOR (3 DOWNTO 0);
-        VGA_blue : OUT STD_LOGIC_VECTOR (3 DOWNTO 0);
-        VGA_hsync : OUT STD_LOGIC;
-        VGA_vsync : OUT STD_LOGIC;
-        btnl : IN STD_LOGIC;
-        btnr : IN STD_LOGIC;
-        btnc : IN STD_LOGIC;
-        btnd : IN STD_LOGIC;
-        btnu : IN STD_LOGIC;
-        SEG7_anode : OUT STD_LOGIC_VECTOR (7 DOWNTO 0); -- anodes of four 7-seg displays
-        SEG7_seg : OUT STD_LOGIC_VECTOR (6 DOWNTO 0)
-    ); 
-END Game_Main;
-
-ARCHITECTURE Behavioral OF Game_Main IS
-    ...
-    SIGNAL display_1 : std_logic_vector (15 DOWNTO 0); -- value to be displayed
-    SIGNAL display_2 : std_logic_vector (15 DOWNTO 0); -- value to be displayed
-    SIGNAL led_mpx : STD_LOGIC_VECTOR (2 DOWNTO 0); -- 7-seg multiplexing clock
-    SIGNAL led_count : unsigned(18 downto 0) := (others => '0');
-    ...
-    COMPONENT tilemap_vga is
-        PORT (
-          clk         : IN  STD_LOGIC;
-          pixel_row   : IN  STD_LOGIC_VECTOR(10 DOWNTO 0);
-          pixel_col   : IN  STD_LOGIC_VECTOR(10 DOWNTO 0);
-          btnl        : IN STD_LOGIC;
-          btnr        : IN STD_LOGIC;
-          btnu        : IN STD_LOGIC;
-          btnd        : IN STD_LOGIC;
-          btnc        : IN STD_LOGIC;
-          red         : OUT STD_LOGIC;
-          green       : OUT STD_LOGIC;
-          blue        : OUT STD_LOGIC;
-          counter     : OUT STD_LOGIC_VECTOR(15 DOWNTO 0);
-          new_last_score : OUT STD_LOGIC_VECTOR(15 DOWNTO 0)
-        );
-    END COMPONENT;
-   ...
-
-    COMPONENT leddec16 IS
-        PORT (
-            dig : IN STD_LOGIC_VECTOR (2 DOWNTO 0);
-            data_1 : IN STD_LOGIC_VECTOR (15 DOWNTO 0);
-            data_2 : IN STD_LOGIC_VECTOR (15 DOWNTO 0);
-            anode : OUT STD_LOGIC_VECTOR (7 DOWNTO 0);
-            seg : OUT STD_LOGIC_VECTOR (6 DOWNTO 0)
-        );
-    END COMPONENT; 
-
-    ...
-    
-    process(pxl_clk)
-    begin
-        if rising_edge(pxl_clk) then
-            led_count <= led_count + 1;
-            led_mpx <= std_logic_vector(led_count(18 downto 16)); -- slow ~1 kHz refresh
-        end if;
-    end process;
-    
-    tilemap : tilemap_vga
-    PORT MAP(
-        clk => pxl_clk,
-        pixel_row => S_pixel_row, 
-        pixel_col => S_pixel_col, 
-        red => S_red, 
-        green => S_green, 
-        blue => S_blue,
-        btnl => btnl,
-        btnr => btnr,
-        btnu => btnu,
-        btnd => btnd,
-        btnc => btnc,
-        counter => display_1,
-        new_last_score => display_2
-    );
-    
-    ...
-
-    led1 : leddec16
-    PORT MAP(
-      dig => led_mpx, data_1 => display_1, data_2 => display_2,
-      anode => SEG7_anode, seg => SEG7_seg
-    );
-END Behavioral;
-```
-
-### `leddec16.vhd`
-This file was only modified slightly to take in two data in ports. One of them would be the current game time displayed on the right four leds and the other would be the previous game completion time displayed on the left four leds. 
-```
-ENTITY leddec16 IS
-	PORT (
-		dig : IN STD_LOGIC_VECTOR (2 DOWNTO 0); -- which digit to currently display
-		data_1 : IN STD_LOGIC_VECTOR (15 DOWNTO 0); -- 16-bit (4-digit) data
-		data_2 : IN STD_LOGIC_VECTOR (15 DOWNTO 0);
-		anode : OUT STD_LOGIC_VECTOR (7 DOWNTO 0); -- which anode to turn on
-		seg : OUT STD_LOGIC_VECTOR (6 DOWNTO 0)); -- segment code for current digit
-END leddec16;
-
-ARCHITECTURE Behavioral OF leddec16 IS
-	SIGNAL data4 : STD_LOGIC_VECTOR (3 DOWNTO 0); -- binary value of current digit
-BEGIN
-	-- Select digit data to be displayed in this mpx period
-	data4 <= data_1(3 DOWNTO 0) WHEN dig = "000" ELSE -- digit 0
-	         data_1(7 DOWNTO 4) WHEN dig = "001" ELSE -- digit 1
-	         data_1(11 DOWNTO 8) WHEN dig = "010" ELSE -- digit 2
-	         data_1(15 DOWNTO 12) WHEN dig = "011" ELSE -- digit 3
-	         data_2(3 DOWNTO 0) WHEN dig = "100" ELSE -- digit 0
-	         data_2(7 DOWNTO 4) WHEN dig = "101" ELSE -- digit 1
-	         data_2(11 DOWNTO 8) WHEN dig = "110" ELSE -- digit 2
-	         data_2(15 DOWNTO 12); -- digit 3
-```
-
-### `Game_Main.xdc` (previously pong.xdc) Modified
-This xdc file was modified to include all of the buttons packages. 
-```
-set_property -dict { PACKAGE_PIN N17 IOSTANDARD LVCMOS33 } [get_ports { btnc }]; #IO_L9P_T1_DQS_14 Sch=btnc
-set_property -dict { PACKAGE_PIN P17 IOSTANDARD LVCMOS33 } [get_ports { btnl }]; #IO_L12P_T1_MRCC_14 Sch=btnl
-set_property -dict { PACKAGE_PIN M17 IOSTANDARD LVCMOS33 } [get_ports { btnr }]; #IO_L10N_T1_D15_14 Sch=btnr
-set_property -dict { PACKAGE_PIN P18 IOSTANDARD LVCMOS33 } [get_ports { btnd }]; #IO_L9N_T1_DQS_D13_14 Sch=btnd
-set_property -dict { PACKAGE_PIN M18 IOSTANDARD LVCMOS33 } [get_ports { btnu }]; #IO_L4N_T0_D05_14 Sch=btnu
-```
-
-### `map_design.vhd`
-This code was reference from [circuitben](https://www.circuitben.net/node/24) but modified slightly for the specific screen used. The original code from circuitben is called `map_rom.vhd`. Since each tile was 16x16, the entire map would be a 50 width by 37 height tile map unlike the 32 by 32 tile map in the original code. The circuit tile placement of the map was also altered to create the map of our design. To allow all this, the below code shows the modifications.
-```
-...
-ARCHITECTURE map_rom OF map_rom IS
-
-    CONSTANT MAP_WIDTH  : integer := 50;
-    CONSTANT MAP_HEIGHT : integer := 37;
-
-    SUBTYPE map_tile IS integer RANGE 0 TO 7;
-    TYPE rom_type IS ARRAY(0 TO MAP_WIDTH * MAP_HEIGHT - 1) OF map_tile;
-
-    -- TODO: Replace the values below with your actual 1850 map tile values
-    CONSTANT rom : rom_type := (
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,1,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,0,0,1,1,1,1,1,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,6,0,0,0,0,0,6,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,6,0,0,1,1,0,6,0,0,0,0,0,6,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-    );
-
-    SIGNAL addr_calc : integer;
-
-BEGIN
-
-    addr_calc <= to_integer(unsigned(tile_Y)) * MAP_WIDTH + to_integer(unsigned(tile_X));
-...
-
-```
-
-### `TileType.vhd`
-This code was also reference from [circuitben](https://www.circuitben.net/node/24). The original code from circuitben is called `good_draw_map.vhd`. Modifications were made to change certain tiles to our specific design. Specifically, tile 2 was modified to create an end flag (shown below). Only tiles 0 (air), 1 (brick), 2 (flag), and 6 (mushroom) were used.
-```
- CONSTANT tile_rom: rom_type(0 TO 2047) :=
-    (
-...
-		-- 2
-		"000", "000", "000", "000", "111", "111", "000", "000", "000", "000", "000", "000", "000", "000", "000", "000",
-		"000", "000", "000", "000", "111", "111", "100", "100", "100", "000", "000", "000", "000", "000", "000", "000",
-		"000", "000", "000", "000", "111", "111", "100", "100", "100", "100", "100", "000", "000", "000", "000", "000",
-		"000", "000", "000", "000", "111", "111", "100", "100", "100", "100", "100", "100", "100", "000", "000", "000",
-		"000", "000", "000", "000", "111", "111", "100", "100", "100", "100", "100", "100", "100", "100", "000", "000",
-		"000", "000", "000", "000", "111", "111", "100", "100", "100", "100", "100", "100", "100", "000", "000", "000",
-		"000", "000", "000", "000", "111", "111", "100", "100", "100", "100", "100", "000", "000", "000", "000", "000",
-		"000", "000", "000", "000", "111", "111", "100", "100", "100", "000", "000", "000", "000", "000", "000", "000",
-		"000", "000", "000", "000", "111", "111", "000", "000", "000", "000", "000", "000", "000", "000", "000", "000",
-		"000", "000", "000", "000", "111", "111", "000", "000", "000", "000", "000", "000", "000", "000", "000", "000",
-		"000", "000", "000", "000", "111", "111", "000", "000", "000", "000", "000", "000", "000", "000", "000", "000",
-		"000", "000", "000", "000", "111", "111", "000", "000", "000", "000", "000", "000", "000", "000", "000", "000",
-		"000", "000", "000", "000", "111", "111", "000", "000", "000", "000", "000", "000", "000", "000", "000", "000",
-		"000", "000", "000", "000", "111", "111", "000", "000", "000", "000", "000", "000", "000", "000", "000", "000",
-		"000", "000", "000", "000", "111", "111", "000", "000", "000", "000", "000", "000", "000", "000", "000", "000",
-		"000", "000", "000", "000", "111", "111", "000", "000", "000", "000", "000", "000", "000", "000", "000", "000",
-		
-...
-    );
-```
+	```
 
 ## Original Code from scratch
-### `tilemap_vga.vhd`
-#### Important Behavior - Game Time Counter
-The game time counter works by scaling the clock down so that each count up by 1 is approximately 1 second. Upon reset, the clock time will reset to 0. If the player is reset based on reaching the end flag, the game completion time updates the last_score (previous game completion time). Additionally, upon reaching the end flag, the entire game will reset. Currently this feature still has issues as the game time does count up but does not modify the previous game completion time.
+### `deck.vhd`
+#### Important Behavior - Scoring
+The score checker works its way down from the best hand (Royal FLush) to the worst (High Card), checking each one via if statement. Generally each check is checking for a boolean, such as "is_royal".
 ```
-    -- Game Time Counter
-    PROCESS(clk)
-    begin
-        IF rising_edge(clk) THEN 
-            IF btnd = '1' OR test_tile_val_h1 = "010" OR test_tile_val_h2 = "010" OR test_tile_val_v1 = "010" OR test_tile_val_v2 = "010" THEN
-                IF test_tile_val_h1 = "010" OR test_tile_val_h2 = "010" OR test_tile_val_v1 = "010" OR test_tile_val_v2 = "010" THEN
-                    IF last_score > std_logic_vector(count) THEN
-                        last_score <= std_logic_vector(count);
-                        new_last_score <= std_logic_vector(count);
-                    END IF;
-                END IF;
-                clock_scaler <= 0;
-                count <= "0000000000000000";
-                counter <= std_logic_vector(count);
-            ELSIF clock_scaler = 34999999 THEN
-                clock_scaler <= 0;
-                count <= count + "0000000000000001";
-                counter <= std_logic_vector(count);
-            ELSE
-                clock_scaler <= clock_scaler + 1;
-            END IF;
-        END IF;
-    END PROCESS;
-```
+    -- Main scoring Function
+	function score_hand(h : hand) return score_t is
+		variable counts : value_count_array := (others => 0);
+		variable val : integer;
+		variable has_pair : boolean := false;
+        variable has_three : boolean := false;
+        variable has_four : boolean := false;
+        variable pair_count : integer := 0;
+        variable three_val : integer := 0;
+        variable four_val : integer := 0;
+        variable pair_vals : integer := 0;
+        variable is_flush_hand : boolean;
+        variable is_straight_hand : boolean;
+        variable is_royal : boolean := false;
+        variable base_value : integer := 0;
+        variable multiplier : integer := 1;
+        variable card_sum : integer := 0;
+        variable result : score_t;
+        type bool_array is array (2 to 14) of boolean;
+        variable present : bool_array := (others => false);
+	begin
+	-- Count occurences of each value
+counts := count_values(h);
 
-#### Important Behavior - Player Rendering
-The player rendering works by drawing the player based on an origin point at its top left corner. The player origin is based off its current pixel location in relation to pixel row and column of the screen, and it is displayed to be 12x12 pixels.
-```
-    -- Player sprite rendering (12×12)
-    PROCESS(clk)
-        VARIABLE px, py, pc, pr : INTEGER;
-    BEGIN
-        IF rising_edge(clk) THEN
-            pc := TO_INTEGER(UNSIGNED(pixel_col));
-            pr := TO_INTEGER(UNSIGNED(pixel_row));
-            px := TO_INTEGER(UNSIGNED(player_x));
-            py := TO_INTEGER(UNSIGNED(player_y));
+-- Populate present array from counts
+for i in 2 to 14 loop
+    present(i) := (counts(i) > 0);
+end loop;
 
-            IF pc < 800 AND pr < 600 THEN
-                IF pc >= px AND pc < px + 12 AND pr >= py AND pr < py + 12 THEN
-                    draw_player  <= '1';
-                    player_red   <= '1';
-                    player_green <= '0';
-                    player_blue  <= '0';
-                ELSE
-                    draw_player  <= '0';
-                    player_red   <= '0';
-                    player_green <= '0';
-                    player_blue  <= '0';
-                END IF;
-            ELSE
-                draw_player  <= '0';
-                player_red   <= '0';
-                player_green <= '0';
-                player_blue  <= '0';
-            END IF;
-        END IF;
-    END PROCESS;
-```
-
-#### Important Behavior - Enemy Logic (Display, movement, and unaliving)
-The enemy logic is formed utilizing an enemy_alive flag to have the enemy be displayed. If the enemy flag is 0, it is not displayed. When enemy flag is 1, enemy is displayed and moves back and forth depending on specific set boundaries. Enemy direction is reversed when it hits a boundary. Enemy position is tracked and then used to draw the enemy in the same way that the player is drawn (based on origin value and 12x12 pixels).
-```
-enemy_logic_1: process(clk)
-begin
-    if rising_edge(clk) then
-        if btnd = '1' OR test_tile_val_h1 = "010" OR test_tile_val_h2 = "010" OR test_tile_val_v1 = "010" OR test_tile_val_v2 = "010" then
-            enemy_x_int_1   <= to_unsigned(400, 10);
-            enemy_y_int_1   <= to_unsigned(225, 10);
-            enemy_dir_1     <= '1';
-            enemy_alive_1   <= '1';
-            move_counter_1  <= (others => '0');
-        elsif enemy_alive_1 = '1' then
-            -- Move enemy every few million cycles
-            move_counter_1 <= move_counter_1 + 1;
-            if move_counter_1 = x"DDDDDD" then
-                move_counter_1 <= (others => '0');
-                if enemy_dir_1 = '1' then
-                    if enemy_x_int_1 < to_unsigned(448, 10) then
-                        enemy_x_int_1 <= enemy_x_int_1 + 1;
-                    else
-                        enemy_dir_1 <= '0';
-                    end if;
-                else
-                    if enemy_x_int_1 > to_unsigned(368, 10) then
-                        enemy_x_int_1 <= enemy_x_int_1 - 1;
-                    else
-                        enemy_dir_1 <= '1';
-                    end if;
-                end if;
-            end if;
-
-            -- Collision detection
-            if (unsigned(player_x) + 11 >= enemy_x_int_1 and
-                unsigned(player_x) <= enemy_x_int_1 + 11 and
-                unsigned(player_y) + 11 >= enemy_y_int_1 and
-                unsigned(player_y) <= enemy_y_int_1 + 11) then
-                hit_player_1 <= '1';
-            else
-                hit_player_1 <= '0';
-            end if;
-            -- PVP Mechanic
-            if btnc = '1' AND (unsigned(player_x) + 21 >= enemy_x_int_1 and
-                unsigned(player_x) <= enemy_x_int_1 + 21 and
-                unsigned(player_y) + 21 >= enemy_y_int_1 and
-                unsigned(player_y) <= enemy_y_int_1 + 21) then
-                    enemy_alive_1 <= '0';
-                end if;
-        else
-            hit_player_1 <= '0';
-        end if;
+-- Check for pairs, three of a kind, four of a kind
+for i in 2 to 14 loop
+    if counts(i) = 2 then
+        has_pair := true;
+        pair_count := pair_count + 1;
+        pair_vals := pair_vals + (i * 2);  -- FIXED: accumulate
+    elsif counts(i) = 3 then
+        has_three := true;
+        three_val := i * 3;
+    elsif counts(i) = 4 then
+        has_four := true;
+        four_val := i * 4;
     end if;
-end process;
+end loop;
 
-    -- Assign signals for drawing
-    enemy_x_1 <= std_logic_vector(enemy_x_int_1);
-    enemy_y_1 <= std_logic_vector(enemy_y_int_1);
--- Enemy drawing process  
-    process(clk)
-begin
-    if rising_edge(clk) then
-            if (enemy_alive_1 = '1' and
-                unsigned(pixel_col) >= unsigned(enemy_x_1) and
-                unsigned(pixel_col) < unsigned(enemy_x_1) + 12 and
-                unsigned(pixel_row) >= unsigned(enemy_y_1) and
-                unsigned(pixel_row) < unsigned(enemy_y_1) + 12) then
-                draw_enemy_1  <= '1';
-                enemy_red_1   <= '1';
-                enemy_green_1 <= '0';
-                enemy_blue_1  <= '1';  -- purple
-            else
-                draw_enemy_1  <= '0';
-                enemy_red_1   <= '0';
-                enemy_green_1 <= '0';
-                enemy_blue_1  <= '0';
-            end if;
-        end if;
-end process;
-```
+-- Check for flush and straight;
+is_flush_hand := is_flush(h);
+is_straight_hand := is_straight(h);
 
-### `player_controller.vhd`
-#### Important Behavior - Movement Tick Generator
-Movement tick generator uses a counter to scale the clock and slow how often movement occurs. This allows for slower, smoother, and continus movement with the player figure. Movement will only occur when move_tick is 1 which is only when the counter reaches the end.
-```
- -- Movement tick generator
-    PROCESS(clk)
-    BEGIN
-        IF rising_edge(clk) THEN
-            IF move_counter = 199999 THEN
-                move_counter <= 0;
-                move_tick <= '1';
-            ELSE
-                move_counter <= move_counter + 1;
-                move_tick <= '0';
-            END IF;
-        END IF;
-    END PROCESS;
-```
-
-#### Important Behavior - Predictive tile positions and movement logic
-The movement logic process below which consists of predicting tile positions utilizes the buttons on the FPGA board for movement. The logic also includes a counter to limit jump height and consistent gravity. Additionally, the set up of the conditional statements allows for both simultaneous horizontal and vertical movement. Each time a button is pressed, the next tile in the direction of movement is discovered using a tile lookup that takes inputs from an instance of map_rom that are port mapped into player_controller. If the next tile is air (air tile number is "000"), the player will move in the selected direction, otherwise, the player position will not be updated (simulating collision). If the player is one the ground, logic is set up to set a ground flag, which is important in allowing the player to jump again as the player can only jump if they have touched the ground again after a previous jump. If the player presses the down button, the player position is reset back to the beginning.
-```
--- Predictive tile positions and movement logic
-    PROCESS(clk)
-    BEGIN
-        IF rising_edge(clk) THEN
-            IF btnd = '1' THEN
-                next_x_h <= to_unsigned(212, 10);
-                next_y_h <= to_unsigned(416, 10);
-                next_x_v <= to_unsigned(212, 10);
-                next_y_v <= to_unsigned(416, 10);
-            ELSIF move_tick = '1' THEN
-                -- Horizontal movement
-                IF btnl = '1' AND UNSIGNED(x_pos) > 0 THEN
-                    next_x_h <= UNSIGNED(x_pos) - 1;
-                    offset_h <= '0';
-                ELSIF btnr = '1' AND UNSIGNED(x_pos) < 788 THEN
-                    next_x_h <= UNSIGNED(x_pos) + 12;
-                    offset_h <= '1';
-                ELSE
-                    next_x_h <= UNSIGNED(x_pos);
-                    offset_h <= '0';
-                END IF;
-                next_y_h <= UNSIGNED(y_pos);
-                
-                IF NOT (test_tile_val_v1 = "000") OR NOT (test_tile_val_v2 = "000") THEN
-                    IF offset_v = '1' THEN
-                            ground <= '1';
-                    END IF;
-                END IF;
-                
-                -- Vertical movement
-                IF btnu = '1' AND UNSIGNED(y_pos) > 0 AND jumping = '0' AND ground = '1' THEN
-                    next_y_v <= UNSIGNED(y_pos) - 1;
-                    offset_v <= '0';
-                    jumping <= '1';
-                    ground <= '0';
-                ELSIF jumping = '1' THEN
-                    next_y_v <= UNSIGNED(y_pos) - 1;
-                    offset_v <= '0';
-                    jumpcount <= jumpcount - 1;
-                    IF jumpcount = 0 THEN
-                        jumping <= '0';
-                        jumpcount <= to_unsigned(45, 7);
-                    END IF;
-                ELSIF UNSIGNED(y_pos) < 588 THEN
-                    next_y_v <= UNSIGNED(y_pos) + 12;
-                    offset_v <= '1';
-                    IF test_tile_val_v1 = "000" AND (test_tile_val_v2 = "000") then
-                        ground <= '0';
-                    END IF;
-                ELSE
-                    next_y_v <= UNSIGNED(y_pos);
-                    offset_v <= '0';
-                END IF;
-                next_x_v <= UNSIGNED(x_pos);
-            END IF;
-        END IF;
-    END PROCESS;
-```
-
-#### Important Behavior - Movement Execution
-Movement execution is based on the result of the previous movement logic. If the next tile in the direction of player movement is determined to be air, the player will move in that direction. Otherwise, the player position will not change. Note that player position only moves when move tick is 1. Player position is reset back to the start when it reaches the end flag (end flag tile number is "010").
-```
-    -- Movement execution
-    PROCESS(clk)
-    BEGIN
-        IF rising_edge(clk) THEN
-            IF reset_player_1 = '1' OR reset_player_2 = '1' OR test_tile_val_h1 = "010" OR test_tile_val_h2 = "010" OR test_tile_val_v1 = "010" OR test_tile_val_v2 = "010" THEN
-                x_pos <= STD_LOGIC_VECTOR(to_unsigned(212, 10));
-                y_pos <= STD_LOGIC_VECTOR(to_unsigned(416, 10));
-            ELSIF move_tick = '1' THEN
-                IF test_tile_val_h1 = "000" AND test_tile_val_h2 = "000" THEN
-                    IF offset_h = '0' THEN
-                        x_pos <= STD_LOGIC_VECTOR(next_x_h);
-                    ELSE
-                        x_pos <= STD_LOGIC_VECTOR(next_x_h - 11);
-                    END IF;
-                END IF;
-
-                IF test_tile_val_v1 = "000" AND test_tile_val_v2 = "000" THEN
-                    IF offset_v = '0' THEN
-                        y_pos <= STD_LOGIC_VECTOR(next_y_v);
-                    ELSE
-                        y_pos <= STD_LOGIC_VECTOR(next_y_v - 11);
-                    END IF;
-                END IF;
-            END IF;
-        END IF;
-    END PROCESS;
+-- Check for royal flush
+if is_flush_hand and is_straight_hand then
+    is_royal := present(10) and present(11) and present(12) and present(13) and present(14);
+end if;
     
-    -- Position outputs
-    player_x <= x_pos;
-    player_y <= y_pos;
+-- Determine hand type and scoring
+if is_royal then
+    base_value := 100;
+    multiplier := 8;
+    -- Add values of the cards in the hand
+    card_sum := 10 + 10 + 10 + 10 + 11;
+--Check for straight flush
+elsif is_flush_hand and is_straight_hand then  -- FIXED: added elsif
+    base_value := 100;
+    multiplier := 9;
+    -- Add value of cards to hand
+    for i in h'range loop
+            card_sum := card_sum + get_card_score_value(h(i));
+    end loop;
+	--Check for 4 of a kind
+	elsif has_four then
+		base_value := 60;
+		multiplier := 7;
+		card_sum := four_val;
+	--Check for full house
+	elsif has_three and has_pair then
+		base_value := 40;
+		multiplier := 4;
+		card_sum := three_val + pair_vals;
+	--Check for flush
+	elsif is_flush_hand then
+		base_value := 35;
+		multiplier := 4;
+		-- Add all card values
+		for i in h'range loop
+				card_sum := card_sum + get_card_score_value(h(i));
+		end loop;
+	-- Check for straight
+	elsif is_straight_hand then
+		base_value := 30;
+		multiplier := 4;
+		-- Add all card values
+		for i in h'range loop	
+				card_sum := card_sum + get_card_score_value(h(i));
+		end loop;
+	--Check for 3 of a kind
+	elsif has_three then
+		base_value := 30;
+		multiplier := 3;
+		card_sum := three_val;
+	-- Check for 2 pairs
+	elsif pair_count = 2 then
+		base_value := 20;
+		multiplier := 2;
+		card_sum := pair_vals;
+	--Check for pair
+	elsif has_pair then
+		base_value := 10;
+		multiplier := 2;
+		card_sum := pair_vals;
+	-- Check for high card
+	else
+            -- High card
+            base_value := 5;
+            multiplier := 1;
+            -- Add highest card value
+            for i in 14 downto 2 loop
+                if present(i) then
+                    if i >= 11 and i <= 13 then
+                        card_sum := 10;
+                    elsif i = 14 then
+                        card_sum := 11;
+                    else
+                        card_sum := i;
+                    end if;
+                    exit;
+                end if;
+            end loop;
+        end if;
+	result.value := base_value + card_sum;
+        result.multiplier := multiplier;
+        return result;
+    end function score_hand;
 ```
+
+
+## deck.vhd
+#### Important Behavior - Game State Machine
+The program is sorted into different states, from shuffling, to dealing, to playing, which can branch into either discarding or playing/scoring a hand. When one state is done, we move to the next. Playing, discarding, and playing_hand see the most interactivity among states.
+```
+-- Main game state machine
+    process(clk_in)
+        variable rand_pos : integer;
+        variable temp_card : card_t;
+        variable score_result : score_t;
+        variable hand_score : integer;
+        variable score_hand_input : work.cards.hand;
+    begin
+        if rising_edge(clk_in) then
+            shuffle_counter <= shuffle_counter + 1;
+            btnc_prev <= btnc;
+            btnr_prev <= btnr;
+            -- This is what dictates the flow of the game.
+            -- We shuffle by randomizing a shuffle index, and then associating every card in the
+            -- deck to a random position.
+            -- To change the random order, see random.vhd
+            case game_state is
+                when SHUFFLING =>
+                    if shuffle_counter(19 downto 0) = 0 then
+                        if shuffle_index = 0 then
+                            shuffled_deck <= deck;
+                            shuffle_index <= 1;
+                        elsif shuffle_index <= 51 then
+                            rand_pos := to_integer(unsigned(Q)) mod (shuffle_index + 1);
+                            temp_card := shuffled_deck(shuffle_index);
+                            shuffled_deck(shuffle_index) <= shuffled_deck(rand_pos);
+                            shuffled_deck(rand_pos) <= temp_card;
+                            shuffle_index <= shuffle_index + 1;
+                        else
+                            shuffle_done <= '1';
+                            game_state <= DEALING;
+                            cards_drawn <= 0;
+                            deck_index <= 0;
+                            cards_remaining <= 52;
+                        end if;
+                    end if;
+               -- Here we deal 8 cards to the player     
+                when DEALING =>
+                    if shuffle_counter(23 downto 0) = 0 then
+                        if cards_drawn < 8 and cards_remaining > 0 then
+                            hand(cards_drawn) <= shuffled_deck(deck_index);
+                            cards_drawn <= cards_drawn + 1;
+                            deck_index <= deck_index + 1;
+                            cards_remaining <= cards_remaining - 1;
+                        else
+                            initial_deal_done <= '1';
+                            if cards_remaining > 0 then
+                                game_state <= PLAYING;
+                            else
+                                game_state <= DECK_EMPTY;
+                            end if;
+                        end if;
+                    end if;
+               -- Here is where we play. Center button takes us to the discard state, right to the playing_hand state     
+                when PLAYING =>
+                    if btnc = '1' and btnc_prev = '0' then
+                        if selected_count > 0 and selected_count <= 5 and discards_remaining > 0 then
+                            if cards_remaining >= selected_count then
+                                game_state <= DISCARDING;
+                                action_idx <= 0;
+                            end if;
+                        end if;
+                    elsif btnr = '1' and btnr_prev = '0' then
+                        if selected_count > 0 and selected_count <= 5 and plays_remaining > 0 then
+                            game_state <= PLAYING_HAND;
+                            action_idx <= 0;
+                        end if;
+                    end if;
+                -- For every switch that is on, when btnc is pressed, those cards are removed and replaced/re-dealt    
+                when DISCARDING =>
+                    if shuffle_counter(20 downto 0) = 0 then
+                        if action_idx < 8 then
+                            if SW(action_idx) = '1' and cards_remaining > 0 then
+                                hand(action_idx) <= shuffled_deck(deck_index);
+                                deck_index <= deck_index + 1;
+                                cards_remaining <= cards_remaining - 1;
+                            end if;
+                            action_idx <= action_idx + 1;
+                        else
+                            discards_remaining <= discards_remaining - 1;
+                            if cards_remaining > 0 then
+                                game_state <= PLAYING;
+                            else
+                                game_state <= DECK_EMPTY;
+                            end if;
+                        end if;
+                    end if;
+                -- For every switch on, that card is played, and it is scored as part of a hand. See deck.vhd for info on how
+                -- hands are scored.    
+                when PLAYING_HAND =>
+                    if shuffle_counter(20 downto 0) = 0 then
+                        if action_idx = 0 then
+                            -- Build temp hand with only selected cards, rest are NULL
+                            for i in 0 to 7 loop
+                                if SW(i) = '1' then
+                                -- We needed to make a temp hand to score, otherwise we'd be scoring the current hand
+                                -- rather than the cards we are trying to play.
+                                    score_hand_input(i) := hand(i);
+                                else
+                                    score_hand_input(i) := NULL_CARD;
+                                end if;
+                            end loop;
+                            score_result := score_hand(score_hand_input);
+                            hand_score := score_result.value * score_result.multiplier;
+                            total_score <= total_score + hand_score;
+                            action_idx <= 1;
+                        elsif action_idx < 9 then
+                            if SW(action_idx - 1) = '1' and cards_remaining > 0 then
+                                hand(action_idx - 1) <= shuffled_deck(deck_index);
+                                deck_index <= deck_index + 1;
+                                cards_remaining <= cards_remaining - 1;
+                            end if;
+                            action_idx <= action_idx + 1;
+                        else
+                            plays_remaining <= plays_remaining - 1;
+                            if cards_remaining > 0 then
+                                game_state <= PLAYING;
+                            else
+                                game_state <= DECK_EMPTY;
+                            end if;
+                        end if;
+                    end if;
+                    -- Self explanatory,
+                when DECK_EMPTY =>
+                    null;
+                    
+            end case;
+        end if;
+    end process;
+```
+
+### `random.vhd`
+#### Important Behavior - Random Vector Generator
+This module generates a random 6 bit vector to be used in the shuffling of game.vhd. Note that in order to achieve a different shuffle order, you need to change the value of lsfr in this module.
+```
+ entity random is
+    Port (
+        clock : in  STD_LOGIC;
+        reset : in  STD_LOGIC;
+        en    : in  STD_LOGIC;
+        Q     : out STD_LOGIC_VECTOR (5 downto 0);
+        check : out STD_LOGIC
+    );
+end random;
+
+architecture Behavioral of random is
+
+    -- 6-bit LFSR state
+    signal lfsr : STD_LOGIC_VECTOR(5 downto 0) := "001111";
+
+    -- Free-running counter used as entropy source
+    signal entropy_counter : unsigned(15 downto 0) := (others => '0');
+
+    -- Ensures seeding happens once after configuration
+    signal seeded : STD_LOGIC := '0';
+
+begin
+
+    process(clock)
+        variable feedback : STD_LOGIC;
+    begin
+        if rising_edge(clock) then
+
+            -- Always increment entropy counter
+            entropy_counter <= entropy_counter + 1;
+
+            -- Seed LFSR ONCE using power-up timing uncertainty
+            if seeded = '0' then
+                lfsr <= "001111";
+                seeded <= '1';
+
+            elsif reset = '1' then
+                -- Optional external reset (can be tied low)
+                lfsr <= "001111";
+
+            elsif en = '1' then
+                -- LFSR polynomial: x^6 + x^5 + 1
+                feedback := lfsr(5) xor lfsr(4);
+                lfsr <= lfsr(4 downto 0) & feedback;
+            end if;
+
+        end if;
+    end process;
+
+    Q     <= lfsr;
+    check <= lfsr(0);
+
+end Behavioral;
+```
+
 
 ## Conclusion
 
 ### Responsibilities
 
-#### Atharva Shaligram:
-- Edited map_design.vhd and TileType.vhd
-- Edited leddec16.vhd
+#### Victor Afonso
+- Created the state machine in game.vhd and the deck module.
+- Base visuals
 - Contributed to GitHub repository
 
-#### Sean Anderson:
-- Designed player_controller.vhd
-- Edited Game_Main.vhd and Game_main.xdc
-- Edited tilemap_vga.vhd
+#### Nick Habakus:
+- Designed the numbers to appear on screen
+- Debugging and code organization
+- Outlined how to achieve randomness
 - Contributed to GitHub repository
 
 ### Timeline of Work Completed
-- Monday 5/5:
-  - Design of Grid Escape mapped out
-  - Initialized all files
-  - Edited existing mapping/tile files and began modifying them
-- Wednesday 5/7:
-  - Edited existing Lab 6 files and integrated clock and VGA components
-  - Created our own design of a map
-- Saturday 5/10:
-  - Worked with top-level file (Game_Main.vhd)
-  - Added logic to player such as movement, collision, attacking
-- Sunday 5/11:
-  - Attempted to integrate all the files together
+- First week
+  - Base outline decided on. Originally was to be a poker game playing against an "opponent"
+  - Began work of deck module
+- Second week
+  - Shifted gears to Balatro 
+  - Selection feature implemented
+  - Preliminary numerical designs
+  - Beginning work on random module and state machine
+- Third week
+  - State machine finalized
+  - Deck functions finalized
+  - Card designs finalized
+  - Scoring tied to LED display
   - Worked with port mapping and component instantiation
-  - Attempted to debug errors with jumping and mapping
-- Monday 5/12:
-  - Fixed some debug issues
-- Tuesday 5/13:
-  - Tried adding timing element with some success
+  
 
 ### Difficulties 
-- Collision and Jumping Issues
-  - Difficulty: There was an issue with the player going through blocks when jumping to the right. Also, jumping was a big challenge as the player would be upside down or would float.
-  - Solution: A detection mechanism was added to prevent the player from going through tiles and for the jumping, a flag was created to ensure that the player would hit the ground.
-- Timing Display Error
-  - Difficulty: The timer was implemented to some degree. While it would replicate counting in real-time, counting about every second, the final result of the game completion time would not be displayed on the left side of the seven segment display.
-  - Improvement: We would recommend trying to delay when the previous game time is updated so that the time is not overwritten and just set to 0.
-
+-Card designs
+	- Numbers would appear really, really odd, sometimes just being unrecognizable or not appearing at all.
+	- Solution: Trial and error.
+- Randomness
+  - When we started dealing with this, we were creating decks that were entirely a single card, ie a deck of 52 queens. When we got past that, we were still seeing
+  - some duplicates
+  - Solution: Downsizing the random vector being generated from 8 to 6, and ensuring that generation for each card happened on different clock cycles rather than all in one.
+- Scoring
+  - When playing hands, the algorithm would score the entire hand rather than what was being played
+  - Solution: Creating a temporary hand at the moment of play, filling it with the cards selected and the rest of the spaces null. This hand would be passed into the scoring function.
