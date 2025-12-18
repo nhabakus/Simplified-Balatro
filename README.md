@@ -15,7 +15,7 @@ The goal of this project was to create a simplified version of the game Balatro 
 
 ### FSM Of Game Flow
 
-![Block Diagram](/Images/block_diagram.png)
+![Block Diagram](Images/balatro.drawio.png)
 
 ## Required Hardware
 For the game to work, you will need the following:
