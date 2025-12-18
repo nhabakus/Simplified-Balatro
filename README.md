@@ -59,7 +59,7 @@ Once you have downloaded the files:
 
 ## Module Hierarchy
 
-![module](/Images/module.jpg)
+![module](Images/hierarchy.png)
 
 ## Inputs and Outputs
 
